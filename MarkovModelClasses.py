@@ -208,6 +208,9 @@ class CohortOutputs:
     def get_times_to_POST_STROKE(self):
         return self._times_to_POST_STROKE
 
+    def get_strokeCount(self):
+        return self._strokeCount
+
     def get_sumStat_survival_times(self):
         return self._sumStat_survivalTime
 

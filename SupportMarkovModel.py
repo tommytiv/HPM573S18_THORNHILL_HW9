@@ -17,18 +17,26 @@ def print_outcomes(simOutput, therapy_name):
         interval=simOutput.get_sumStat_survival_times().get_t_CI(alpha=Settings.ALPHA),
         deci=2)
 
+
+    # print outcomes
+
+    print("  Estimate of mean survival time and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
+          survival_mean_CI_text)
+
+    print("")
+
+
+def print_outcomes2 (simOutput, therapy_name):
+
     stroke_mean_CI_text = F.format_estimate_interval(
         estimate=simOutput.get_sumStat_stroke_count().get_mean(),
         interval=simOutput.get_sumStat_stroke_count().get_t_CI(alpha=Settings.ALPHA),
         deci=2)
 
-    # print outcomes
     print(therapy_name)
-    print("  Estimate of mean survival time and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
-          survival_mean_CI_text)
     print("  Estimate of mean number of strokes and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           stroke_mean_CI_text)
-    print("")
+
 
 
 def draw_survival_curves_and_histograms(simOutputs_mono, simOutputs_combo):
