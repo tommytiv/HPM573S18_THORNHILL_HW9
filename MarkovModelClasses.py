@@ -52,6 +52,10 @@ class Patient:
         """ returns the patient's survival time"""
         return self._stateMonitor.get_survival_time()
 
+    def get_stroke_count(self):
+        """ returns the patient's survival time"""
+        return self._stateMonitor.get_stroke_count()
+
     def get_time_to_POST_STROKE(self):
         """ returns the patient's time to POST_STROKE """
         return self._stateMonitor.get_time_to_POST_STROKE()
@@ -67,6 +71,9 @@ class PatientStateMonitor:
         self._survivalTime = 0          # survival time
         self._timeToPOST_STROKE = 0        # time to develop POST_STROKE
         self._ifDevelopedPOST_STROKE = False   # if the patient developed POST_STROKE
+        self._countstroke=0 # create an empty list where losses will be stored
+
+
 
     def update(self, k, next_state):
         """
@@ -115,6 +122,11 @@ class PatientStateMonitor:
         else:
             return None
 
+    def get_stroke_count(self):
+        if self._currentState in [P.HealthStats.STROKE]:
+                self._countstroke +=1
+        return self._countstroke
+
 class Cohort:
     def __init__(self, id, therapy):
         """ create a cohort of patients
@@ -160,6 +172,7 @@ class CohortOutputs:
 
         self._survivalTimes = []        # patients' survival times
         self._times_to_POST_STROKE = []        # patients' times to POST_STROKE
+        self._strokeCount = []
 
         # survival curve
         self._survivalCurve = \
@@ -174,6 +187,10 @@ class CohortOutputs:
                 self._survivalTimes.append(survival_time)           # store the survival time of this patient
                 self._survivalCurve.record(survival_time, -1)       # update the survival curve
 
+            stroke_count = patient.get_stroke_count()
+            if not (stroke_count is None):
+                self._strokeCount.append(stroke_count)
+
             # get the patient's time to POST_STROKE
             time_to_POST_STROKE = patient.get_time_to_POST_STROKE()
             if not (time_to_POST_STROKE is None):
@@ -183,15 +200,13 @@ class CohortOutputs:
         # summary statistics
         self._sumStat_survivalTime = StatCls.SummaryStat('Patient survival time', self._survivalTimes)
         self._sumState_timeToPOST_STROKE = StatCls.SummaryStat('Time until POST_STROKE', self._times_to_POST_STROKE)
+        self._sumStat_stroke = StatCls.SummaryStat('Number of strokes', self._strokeCount)
 
     def get_survival_times(self):
         return self._survivalTimes
 
     def get_times_to_POST_STROKE(self):
         return self._times_to_POST_STROKE
-
-    def get_costs(self):
-        return self._costs
 
     def get_sumStat_survival_times(self):
         return self._sumStat_survivalTime
@@ -201,3 +216,6 @@ class CohortOutputs:
 
     def get_survival_curve(self):
         return self._survivalCurve
+
+    def get_sumStat_stroke_count(self):
+        return self._sumStat_stroke
