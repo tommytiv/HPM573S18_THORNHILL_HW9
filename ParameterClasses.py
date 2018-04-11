@@ -7,46 +7,25 @@ import scr.MarkovClasses as MarkovCls
 import scr.RandomVariantGenerators as Random
 import scr.ProbDistParEst as Est
 
-
 class HealthStats(Enum):
     """ health states of patients with HIV """
     WELL = 0
     STROKE = 1
     POST_STROKE = 2
     STROKE_DEATH = 3
-    BACKGROUND_DEATH = 4
-
 
 class Therapies(Enum):
     """ mono vs. combination therapy """
     NONE = 0
-    COMBO = 1
-
+    TREAT = 1
 
 class _Parameters:
 
     def __init__(self, therapy):
-
-        # selected therapy
-        self._therapy = therapy
-
-        # simulation time step
-        self._delta_t = Data.DELTA_T
-
-        # calculate the adjusted discount rate
-        self._adjDiscountRate = Data.DISCOUNT*Data.DELTA_T
-
-        # initial health state
-        self._initialHealthState = HealthStats.WELL
-
-        # transition probability matrix of the selected therapy
-        self._prob_matrix = []
-        # treatment relative risk
-        self._treatmentRR = 0
-
-        # annual state costs and utilities
-        self._annualStateCosts = []
-        self._annualStateUtilities = []
+        self._therapy = therapy  # selected therapy
+        self._delta_t = Data.DELTA_T # simulation time step
+        self._initialHealthState = HealthStats.WELL  # initial health state
+        self._prob_matrix = [] # transition probability matrix of the selected therapy
 
     def get_initial_health_state(self):
         return self._initialHealthState
@@ -54,18 +33,8 @@ class _Parameters:
     def get_delta_t(self):
         return self._delta_t
 
-    def get_adj_discount_rate(self):
-        return self._adjDiscountRate
-
     def get_transition_prob(self, state):
         return self._prob_matrix[state.value]
-
-    def get_annual_state_cost(self, state):
-        if state == HealthStats.STROKE_DEATH or state == HealthStats.BACKGROUND_DEATH:
-            return 0
-        else:
-            return self._annualStateCosts[state.value]
-
 
 class ParametersFixed(_Parameters):
     def __init__(self, therapy):
@@ -74,19 +43,11 @@ class ParametersFixed(_Parameters):
         _Parameters.__init__(self, therapy)
 
         # calculate transition probabilities between hiv states
-        self._prob_matrix = calculate_prob_matrix()
+        self._prob_matrix = Data.PROB_MATRIX
 
         # update the transition probability matrix if combination therapy is being used
-        if self._therapy == Therapies.COMBO:
-            # treatment relative risk
-            self._treatmentRR = Data.TREATMENT_RR
-            # calculate transition probability matrix for the combination therapy
-            self._prob_matrix = calculate_prob_matrix_combo(
-                matrix_mono=self._prob_matrix, combo_rr=Data.TREATMENT_RR)
-
-        # annual state costs and utilities
-        self._annualStateCosts = Data.ANNUAL_STATE_COST
-
+        if self._therapy == Therapies.TREAT:
+            self._prob_matrix = Data.TREAT_PROB_MATRIX
 
 class ParametersProbabilistic(_Parameters):
     def __init__(self, seed, therapy):
@@ -95,14 +56,14 @@ class ParametersProbabilistic(_Parameters):
         _Parameters.__init__(self, therapy)
 
         self._rng = Random.RNG(seed)    # random number generator to sample from parameter distributions
-        self._hivProbMatrixRVG = []  # list of dirichlet distributions for transition probabilities
+        self._strokeProbMatrixRVG = []  # list of dirichlet distributions for transition probabilities
         self._lnRelativeRiskRVG = None  # random variate generator for the treatment relative risk
         self._annualStateCostRVG = []       # list of random variate generators for the annual cost of states
 
         # HIV transition probabilities
         j = 0
         for prob in Data.TRANS_MATRIX:
-            self._hivProbMatrixRVG.append(Random.Dirichlet(prob[j:]))
+            self._strokeProbMatrixRVG.append(Random.Dirichlet(prob[j:]))
             j += 1
 
         # treatment relative risk
@@ -132,39 +93,20 @@ class ParametersProbabilistic(_Parameters):
         # for all health states
         for s in HealthStats:
             # if the current state is death
-            if s in [HealthStats.STROKE_DEATH, HealthStats.BACKGROUND_DEATH]:
+            if s in [HealthStats.STROKE_DEATH]:
                 # the probability of staying in this state is 1
                 self._prob_matrix[s.value][s.value] = 1
             else:
                 # sample from the dirichlet distribution to find the transition probabilities between hiv states
-                dist = self._hivProbMatrixRVG[s.value]
+                dist = self._strokeProbMatrixRVG[s.value]
                 sample = dist.sample(self._rng)
                 for j in range(len(sample)):
                     self._prob_matrix[s.value][s.value+j] = sample[j]
 
 
         # update the transition probability matrix if combination therapy is being used
-        if self._therapy == Therapies.COMBO:
-            # treatment relative risk
-            self._treatmentRR = math.exp(self._lnRelativeRiskRVG.sample(self._rng))
-            # calculate transition probability matrix for the combination therapy
-            self._prob_matrix = calculate_prob_matrix_combo(
-                matrix_mono=self._prob_matrix, combo_rr=self._treatmentRR)
-
-        # sample from gamma distributions that are assumed for annual state costs
-        self._annualStateCosts = []
-        for dist in self._annualStateCostRVG:
-            self._annualStateCosts.append(dist.sample(self._rng))
-
-        # sample from beta distributions that are assumed for annual state utilities
-        self._annualStateUtilities = []
-        for dist in self._annualStateUtilityRVG:
-            self._annualStateUtilities.append(dist.sample(self._rng))
-
-
-def calculate_prob_matrix():
-    return Data.PROB_MATRIX
-
+        if self._therapy == Therapies.TREAT:
+            self._prob_matrix = Data.TREAT_PROB_MATRIX
 
 
 def calculate_prob_matrix_combo(matrix_mono, combo_rr):

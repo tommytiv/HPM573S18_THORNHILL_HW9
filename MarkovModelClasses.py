@@ -56,10 +56,6 @@ class Patient:
         """ returns the patient's time to POST_STROKE """
         return self._stateMonitor.get_time_to_POST_STROKE()
 
-    def get_total_discounted_cost(self):
-        """ :returns total discounted cost """
-        return self._stateMonitor.get_total_discounted_cost()
-
 class PatientStateMonitor:
     """ to update patient outcomes (years survived, cost, etc.) throughout the simulation """
     def __init__(self, parameters):
@@ -72,9 +68,6 @@ class PatientStateMonitor:
         self._timeToPOST_STROKE = 0        # time to develop POST_STROKE
         self._ifDevelopedPOST_STROKE = False   # if the patient developed POST_STROKE
 
-        # monitoring cost and utility outcomes
-        self._costUtilityOutcomes = PatientCostUtilityMonitor(parameters)
-
     def update(self, k, next_state):
         """
         :param k: current time step
@@ -86,7 +79,7 @@ class PatientStateMonitor:
             return
 
         # update survival time
-        if next_state in [P.HealthStats.STROKE_DEATH, P.HealthStats.BACKGROUND_DEATH]:
+        if next_state in [P.HealthStats.STROKE_DEATH]:
             self._survivalTime = (k+0.5)*self._delta_t  # corrected for the half-cycle effect
 
         # update time until POST_STROKE
@@ -94,15 +87,12 @@ class PatientStateMonitor:
             self._ifDevelopedPOST_STROKE = True
             self._timeToPOST_STROKE = (k + 0.5) * self._delta_t  # corrected for the half-cycle effect
 
-        # collect cost and utility outcomes
-        self._costUtilityOutcomes.update(k, self._currentState, next_state)
-
         # update current health state
         self._currentState = next_state
 
     def get_if_alive(self):
         result = True
-        if self._currentState in [P.HealthStats.STROKE_DEATH, P.HealthStats.BACKGROUND_DEATH]:
+        if self._currentState in [P.HealthStats.STROKE_DEATH]:
             result = False
         return result
 
@@ -124,38 +114,6 @@ class PatientStateMonitor:
             return self._timeToPOST_STROKE
         else:
             return None
-
-    def get_total_discounted_cost(self):
-        """ :returns total discounted cost """
-        return self._costUtilityOutcomes.get_total_discounted_cost()
-
-
-class PatientCostUtilityMonitor:
-
-    def __init__(self, parameters):
-
-        # model parameters for this patient
-        self._param = parameters
-
-        # total cost and utility
-        self._totalDiscountedCost = 0
-
-    def update(self, k, current_state, next_state):
-        """ updates the discounted total cost and health utility
-        :param k: simulation time step
-        :param current_state: current health state
-        :param next_state: next health state
-        """
-
-        # update cost
-        cost = 0.5 * (self._param.get_annual_state_cost(current_state) +
-                      self._param.get_annual_state_cost(next_state)) * self._param.get_delta_t()
-
-
-    def get_total_discounted_cost(self):
-        """ :returns total discounted cost """
-        return self._totalDiscountedCost
-
 
 class Cohort:
     def __init__(self, id, therapy):
@@ -202,7 +160,6 @@ class CohortOutputs:
 
         self._survivalTimes = []        # patients' survival times
         self._times_to_POST_STROKE = []        # patients' times to POST_STROKE
-        self._costs = []                # patients' discounted total costs
 
         # survival curve
         self._survivalCurve = \
@@ -222,13 +179,10 @@ class CohortOutputs:
             if not (time_to_POST_STROKE is None):
                 self._times_to_POST_STROKE.append(time_to_POST_STROKE)
 
-            # cost and utility
-            self._costs.append(patient.get_total_discounted_cost())
 
         # summary statistics
         self._sumStat_survivalTime = StatCls.SummaryStat('Patient survival time', self._survivalTimes)
         self._sumState_timeToPOST_STROKE = StatCls.SummaryStat('Time until POST_STROKE', self._times_to_POST_STROKE)
-        self._sumStat_cost = StatCls.SummaryStat('Patient discounted cost', self._costs)
 
     def get_survival_times(self):
         return self._survivalTimes
@@ -244,10 +198,6 @@ class CohortOutputs:
 
     def get_sumStat_time_to_POST_STROKE(self):
         return self._sumState_timeToPOST_STROKE
-
-    def get_sumStat_discounted_cost(self):
-        return self._sumStat_cost
-
 
     def get_survival_curve(self):
         return self._survivalCurve

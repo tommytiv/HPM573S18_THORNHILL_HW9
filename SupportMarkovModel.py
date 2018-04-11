@@ -17,27 +17,10 @@ def print_outcomes(simOutput, therapy_name):
         interval=simOutput.get_sumStat_survival_times().get_t_CI(alpha=Settings.ALPHA),
         deci=2)
 
-    # mean and confidence interval text of time to AIDS
-    time_to_stroke_death_CI_text = F.format_estimate_interval(
-        estimate=simOutput.get_sumStat_time_to_POST_STROKE().get_mean(),
-        interval=simOutput.get_sumStat_time_to_POST_STROKE().get_t_CI(alpha=Settings.ALPHA),
-        deci=2)
-
-    # mean and confidence interval text of discounted total cost
-    cost_mean_CI_text = F.format_estimate_interval(
-        estimate=simOutput.get_sumStat_discounted_cost().get_mean(),
-        interval=simOutput.get_sumStat_discounted_cost().get_t_CI(alpha=Settings.ALPHA),
-        deci=0,
-        form=F.FormatNumber.CURRENCY)
-
     # print outcomes
     print(therapy_name)
     print("  Estimate of mean survival time and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           survival_mean_CI_text)
-    print("  Estimate of mean time to AIDS and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
-          time_to_stroke_death_CI_text)
-    print("  Estimate of discounted cost and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
-          cost_mean_CI_text)
     print("")
 
 
@@ -108,48 +91,6 @@ def print_comparative_outcomes(simOutputs_mono, simOutputs_combo):
           "and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           estimate_CI)
 
-    # increase in discounted total cost under combination therapy with respect to mono therapy
-    if Settings.PSA_ON:
-        increase_discounted_cost = Stat.DifferenceStatPaired(
-            name='Increase in discounted cost',
-            x=simOutputs_combo.get_costs(),
-            y_ref=simOutputs_mono.get_costs())
-    else:
-        increase_discounted_cost = Stat.DifferenceStatIndp(
-            name='Increase in discounted cost',
-            x=simOutputs_combo.get_costs(),
-            y_ref=simOutputs_mono.get_costs())
-
-    # estimate and CI
-    estimate_CI = F.format_estimate_interval(
-        estimate=increase_discounted_cost.get_mean(),
-        interval=increase_discounted_cost.get_t_CI(alpha=Settings.ALPHA),
-        deci=0,
-        form=F.FormatNumber.CURRENCY)
-    print("Average increase in discounted cost "
-          "and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
-          estimate_CI)
-
-    # increase in discounted total utility under combination therapy with respect to mono therapy
-    if Settings.PSA_ON:
-        increase_discounted_utility = Stat.DifferenceStatPaired(
-            name='Increase in discounted utility',
-            x=simOutputs_combo.get_utilities(),
-            y_ref=simOutputs_mono.get_utilities())
-    else:
-        increase_discounted_utility = Stat.DifferenceStatIndp(
-            name='Increase in discounted cost',
-            x=simOutputs_combo.get_utilities(),
-            y_ref=simOutputs_mono.get_utilities())
-
-    # estimate and CI
-    estimate_CI = F.format_estimate_interval(
-        estimate=increase_discounted_utility.get_mean(),
-        interval=increase_discounted_utility.get_t_CI(alpha=Settings.ALPHA),
-        deci=2)
-    print("Average increase in discounted utility "
-          "and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
-          estimate_CI)
 
 
 def report_CEA_CBA(simOutputs_mono, simOutputs_combo):
