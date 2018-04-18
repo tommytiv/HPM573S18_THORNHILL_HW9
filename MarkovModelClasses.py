@@ -97,6 +97,11 @@ class PatientStateMonitor:
         # update current health state
         self._currentState = next_state
 
+
+        if self._currentState is P.HealthStats.STROKE:
+                self._countstroke +=1
+
+
     def get_if_alive(self):
         result = True
         if self._currentState in [P.HealthStats.STROKE_DEATH]:
@@ -122,10 +127,6 @@ class PatientStateMonitor:
         else:
             return None
 
-    def get_stroke_count(self):
-        if self._currentState in [P.HealthStats.STROKE]:
-                self._countstroke +=1
-        return self._countstroke
 
 class Cohort:
     def __init__(self, id, therapy):
@@ -208,8 +209,8 @@ class CohortOutputs:
     def get_times_to_POST_STROKE(self):
         return self._times_to_POST_STROKE
 
-    def get_strokeCount(self):
-        return self._strokeCount
+    def get_times_to_POST_STROKE(self):
+        return self._times_to_POST_STROKE
 
     def get_sumStat_survival_times(self):
         return self._sumStat_survivalTime

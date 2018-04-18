@@ -32,7 +32,7 @@ class _Parameters:
 
     def get_delta_t(self):
         return self._delta_t
-
+er
     def get_transition_prob(self, state):
         return self._prob_matrix[state.value]
 
